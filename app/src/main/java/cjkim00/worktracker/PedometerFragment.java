@@ -27,11 +27,18 @@ import static android.widget.Toast.LENGTH_SHORT;
  */
 public class PedometerFragment extends Fragment implements SensorEventListener {
 
-    static int totalSteps = 0;
+    int totalSteps = 0;
     TextView steps;
     SensorManager sensorManager;
     public PedometerFragment() {
         // Required empty public constructor
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+
     }
 
 
@@ -44,31 +51,18 @@ public class PedometerFragment extends Fragment implements SensorEventListener {
         steps = (TextView) v.findViewById(R.id.step_counter);
         steps.setText(String.valueOf(totalSteps));
         sensorManager = (SensorManager) Objects.requireNonNull(getActivity()).getSystemService(Context.SENSOR_SERVICE);
-        Button b = v.findViewById(R.id.button);
-        b.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                StopwatchFragment stopwatchFragment = new StopwatchFragment();
-                assert getFragmentManager() != null;
-                FragmentTransaction fragmentTransaction = getFragmentManager()
-                        .beginTransaction()
-                        .replace(((ViewGroup)(Objects.requireNonNull(getView()).getParent())).getId(), stopwatchFragment)
-                        .addToBackStack(null);
-                fragmentTransaction.commit();
-            }
-        });
-
         return v;
     }
 
     @Override
     public void onResume() {
         super.onResume();
+
         Sensor countSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
         if(countSensor != null) {
             sensorManager.registerListener(this, countSensor, SensorManager.SENSOR_DELAY_UI);
         } else {
-            Toast.makeText(this.getContext(), "Sensor Nout found!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this.getContext(), "Sensor Not found!", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -84,7 +78,4 @@ public class PedometerFragment extends Fragment implements SensorEventListener {
 
     }
 
-    public static int getSteps() {
-        return totalSteps;
-    }
 }
