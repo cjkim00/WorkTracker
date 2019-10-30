@@ -1,5 +1,6 @@
 package cjkim00.worktracker;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.support.design.widget.TabLayout;
@@ -37,9 +38,12 @@ public class MainActivity extends AppCompatActivity implements StopwatchFragment
                                                                  statisticsFragment,
                                                                  this);
         viewPager.setAdapter(viewPagerAdapter);
-
         TabLayout tabLayout = findViewById(R.id.tabs);
         tabLayout.setupWithViewPager(viewPager);
+        //Intent intent = new Intent(this, DayTrackerService.class);
+        //startService(intent);
+
+        //startService(new Intent(this, DayTrackerService.class));
     }
 
     @Override

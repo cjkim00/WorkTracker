@@ -2,6 +2,7 @@ package cjkim00.worktracker;
 
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -116,9 +117,10 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
                     //todayStepsView.setText(String.valueOf((int)Math.floor(todaySteps)));
                     //todayTimeView.setText(todaysTimeString);
                     writeFile(v1, Math.abs(elapsedSeconds));
-                    setTodayValues();
+
                     isSaved = true;
                     todaySteps += totalSteps;
+                    setTodayValues();
                     elapsedSeconds = 0;
                     totalSteps = 0;
                     timeWhenStopped = 0;
@@ -282,11 +284,16 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
     }
 
     public void resetTodaysStats() {
+        getPreferences();
         todaySteps = 0;
         todayTime = 0;
         todayTimeView.setText(String.valueOf(todayTime));
         todayStepsView.setText(String.valueOf(todaySteps));
     }
+
+    public static void setValue(int i) {
+
+}
 
 
 
@@ -294,7 +301,7 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
     @Override
     public void onResume() {
         super.onResume();
-        //getPreferences();
+        getPreferences();
         Sensor countSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
         if(countSensor != null) {
             sensorManager.registerListener(this, countSensor, SensorManager.SENSOR_DELAY_UI);
@@ -306,6 +313,8 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
     @Override
     public void onStop() {
         super.onStop();
+        SharedPreferences stepPreferences = Objects.requireNonNull(this.getActivity()).getSharedPreferences("steps", Context.MODE_PRIVATE);
+        SharedPreferences.Editor stepEditor = stepPreferences.edit();
         SharedPreferences preferences = Objects.requireNonNull(this.getActivity()).getSharedPreferences("sharedPrefs", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = preferences.edit();
         elapsedSeconds = (int) (chronometer.getBase() - SystemClock.elapsedRealtime());
@@ -324,12 +333,17 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
         }
         editor.putBoolean("isTimerRunning", timerIsStarted);
         editor.putInt("todayTime", todayTime);
-        editor.putInt("todaySteps", todaySteps);
+        editor.putInt("totalSteps", totalSteps);
+        //editor.putInt("stepsWhileStopped", PedometerService.getSteps());
         editor.putInt("elapsedTime", (int) elapsedSeconds);
         editor.putLong("base", System.currentTimeMillis());
         editor.putLong("chromBase", chronometer.getBase());
         //editor.putBoolean("isSaved", isSaved);
         editor.commit();
+        if(timerIsStarted) {
+            Intent intent = new Intent(this.getContext(), PedometerService.class);
+            this.getContext().startService(intent);
+        }
     }
 
     /**
@@ -361,13 +375,16 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
         //editor.putInt("timeWhenStopped", (int) timeWhenStopped);
         editor.putBoolean("isTimerRunning", timerIsStarted);
         editor.putInt("todayTime", todayTime);
-        editor.putInt("todaySteps", todaySteps);
+        editor.putInt("totalSteps", totalSteps);
         editor.putInt("elapsedTime", (int) elapsedSeconds);
         //editor.putBoolean("isSaved", isSaved);
         editor.commit();
     }
 
     public void getPreferences() {
+        int stoppedSteps = PedometerService.getSteps();
+        Intent intent = new Intent(this.getContext(), PedometerService.class);
+        this.getContext().stopService(intent);
         SharedPreferences preferences = Objects.requireNonNull(this.getActivity()).getSharedPreferences("sharedPrefs", Context.MODE_PRIVATE);
         setTodayValues();
         if(preferences.contains("stoppedTime")) {
@@ -415,9 +432,10 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
             //todayStepsView.setVisibility(View.VISIBLE);
         }
 
-        if(preferences.contains("todaySteps")) {
-            //todaySteps = preferences.getInt("todaySteps", 0);
-            //todayStepsView.setText(String.valueOf(totalSteps));
+        if(preferences.contains("totalSteps")) {
+            totalSteps = preferences.getInt("totalSteps", 0) + stoppedSteps;
+            Log.v("STEPS2", " STEPS: " + totalSteps + " STOPPEDSTEPS: " + stoppedSteps);
+            steps.setText(String.valueOf(totalSteps));
         }
         /*
         if(preferences.contains("isSaved")) {
