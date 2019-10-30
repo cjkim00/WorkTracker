@@ -3,7 +3,7 @@ package cjkim00.worktracker;
 
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
-import android.support.v4.widget.TextViewCompat;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,6 +28,7 @@ public class StatisticsFragment extends Fragment {
     TextView maxTimeWorked;
     TextView averageSteps;
     TextView averageTimeWorked;
+    View v;
     public StatisticsFragment() {
         // Required empty public constructor
     }
@@ -37,9 +38,14 @@ public class StatisticsFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        View v = inflater.inflate(R.layout.fragment_statistics, container, false);
+        //View v = inflater.inflate(R.layout.fragment_statistics, container, false);
+        v = inflater.inflate(R.layout.fragment_statistics, container, false);
+        //setViews(v);
+        updateStats();
+        return v;
+    }
 
-
+    public void setViews(View v) {
         minSteps = v.findViewById(R.id.MinSteps);
         minTimes = v.findViewById(R.id.MinTime);
         maxSteps = v.findViewById(R.id.MaxSteps);
@@ -53,35 +59,29 @@ public class StatisticsFragment extends Fragment {
         maxTimeWorked.setText("0");
         averageSteps.setText("0");
         averageTimeWorked.setText("0");
-
-        //updateStats(v);
-
-        return v;
     }
 
-    public void updateStats(View v) {
+    public void updateStats() {
+        setViews(v);
         ArrayList<Integer> times = new ArrayList<>();
         ArrayList<String> dates = new ArrayList<>();
         ArrayList<Integer> steps = new ArrayList<>();
-
-
-        //Toast.makeText(this.getContext(), "updated!", Toast.LENGTH_SHORT).show();
         try {
             FileInputStream fileInputStream = v.getContext().openFileInput("Work_Data_Final2.txt");
             InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream);
-
             BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-            StringBuilder stringBuffer = new StringBuilder();
-
 
             String lines;
+            String[] split;
             while ((lines = bufferedReader.readLine()) != null) {
-                String[] split = lines.split("\\s+");
+                split = lines.split("\\s+");
                 times.add(Integer.parseInt(split[0]));
                 dates.add(split[1]);
                 steps.add(Integer.parseInt(split[2]));
             }
-
+            fileInputStream.close();
+            inputStreamReader.close();
+            bufferedReader.close();
             ArrayList<Integer> newTimes = new ArrayList<>();
             ArrayList<String> newDates = new ArrayList<>();
             ArrayList<Integer> newSteps = new ArrayList<>();
@@ -96,7 +96,6 @@ public class StatisticsFragment extends Fragment {
                         newDates.add(dates.get(i));
                         newTimes.add(times.get(i));
                         newSteps.add(steps.get(i));
-                        Toast.makeText(this.getContext(), String.valueOf(times.get(i)), Toast.LENGTH_SHORT).show();
                         // if the value is in the arraylist then add to the time and steps
                     } else {
                         int tempTime = times.get(i);
@@ -112,29 +111,38 @@ public class StatisticsFragment extends Fragment {
                 }
             }
 
-            //v.getContext().deleteFile("Work_Data_Final.txt");
-            int avgTime = getAverage(newTimes);
-            int avgStep = getAverage(newSteps);
-            int maxTime = getMax(newTimes);
-            int maxStep = getMax(newSteps);
-            int minStep = getMin(newSteps);
             int minTime = getMin(newTimes);
+            int avgTime = getAverage(newTimes);
+            int maxTime = getMax(newTimes);
 
-            maxSteps.setText(String.valueOf(maxStep));
-            averageSteps.setText(String.valueOf(avgStep));
-            averageTimeWorked.setText(String.valueOf(avgTime));
-            maxTimeWorked.setText(String.valueOf(maxTime));
+            int minStep = getMin(newSteps);
+            int avgStep = getAverage(newSteps);
+            int maxStep = getMax(newSteps);
+
+            int[] convertedMinTime = StopwatchFragment.convertTime(minTime);
+            int[] convertedAvgTime = StopwatchFragment.convertTime(avgTime);
+            int[] convertedMaxTime = StopwatchFragment.convertTime(maxTime);
+            //String hours = String.format("%02d",convertedTime[0]);
+            String minTimeString = String.format("%02d",convertedMinTime[0]) + ":" + String.format("%02d",convertedMinTime[1]) + ":" + String.format("%02d",convertedMinTime[2]);
+            String avgTimeString = String.format("%02d",convertedAvgTime[0]) + ":" + String.format("%02d",convertedAvgTime[1]) + ":" + String.format("%02d",convertedAvgTime[2]);
+            String maxTimeString = String.format("%02d",convertedMaxTime[0]) + ":" + String.format("%02d",convertedMaxTime[1]) + ":" + String.format("%02d",convertedMaxTime[2]);
 
             minSteps.setText(String.valueOf(minStep));
-            minTimes.setText(String.valueOf(minTime));
+            averageSteps.setText(String.valueOf(avgStep));
+            maxSteps.setText(String.valueOf(maxStep));
 
-
+            minTimes.setText(minTimeString);
+            averageTimeWorked.setText(avgTimeString);
+            maxTimeWorked.setText(maxTimeString);
 
 
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
+
+
 
     public int getAverage(ArrayList<Integer> list) {
         int sum = 0;

@@ -2,6 +2,7 @@ package cjkim00.worktracker;
 
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -10,6 +11,7 @@ import android.os.Bundle;
 import android.os.SystemClock;
 import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,6 +26,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Objects;
@@ -38,76 +41,62 @@ import static android.content.Context.MODE_PRIVATE;
 public class StopwatchFragment extends Fragment implements SensorEventListener {
 
     boolean timerIsStarted = false;
-    boolean firstTimeStarted = false;
     boolean isSaved = false;
     Chronometer chronometer;
-    TextView displayText;
     TextView steps;
     TextView todayStepsView;
     TextView todayTimeView;
     TextView textView;
     TextView textView2;
 
-    long timeWhenStopped = 0;
+    Button saveButton;
+    Button stopButton;
+
+    int timeWhenStopped = 0;
     int totalSteps = 0;
     int todaySteps = 0;
     int todayTime = 0;
-    int saveTime = 0;
+    long stoppedTime = 0;
     long elapsedSeconds = 0;
+    long baseTime = 0;
+    String todaysDate;
     SensorManager sensorManager;
+    View v;
     private OnSaveButtonPressedListener mListener;
 
     public StopwatchFragment() {
-        // Required empty public constructor
+
     }
+
 
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        View v = inflater.inflate(R.layout.fragment_stopwatch, container, false);
-        chronometer =  v.findViewById(R.id.stopwatch);
-        steps = (TextView) v.findViewById(R.id.step_counter2);
-        steps.setText(String.valueOf(totalSteps));
+        v = inflater.inflate(R.layout.fragment_stopwatch, container, false);
+        setViews(v);
+        createFile(v);
         sensorManager = (SensorManager) Objects.requireNonNull(getActivity()).getSystemService(Context.SENSOR_SERVICE);
 
-        todayStepsView = v.findViewById(R.id.today_steps);
-        todayTimeView = v.findViewById(R.id.today_time);
 
-        textView = v.findViewById(R.id.textView10);
-        textView2 = v.findViewById(R.id.textView6);
 
-        todayStepsView.setVisibility(View.INVISIBLE);
-        todayTimeView.setVisibility(View.INVISIBLE);
-
-        textView.setVisibility(View.INVISIBLE);
-        textView2.setVisibility(View.INVISIBLE);
-        if(!fileExists(v, "Work_Data_Final2.txt")) {
-            try {
-                FileOutputStream fileOutputStream = v.getContext().openFileOutput("Work_Data_Final2.txt", MODE_PRIVATE);
-                fileOutputStream.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        final Button saveButton = v.findViewById(R.id.save_button);
-        final Button stopButton = v.findViewById(R.id.start_button);
+        saveButton = v.findViewById(R.id.save_button);
+        stopButton = v.findViewById(R.id.start_button);
         stopButton.setOnClickListener(v12 -> {
 
             if(!timerIsStarted) {
                 chronometer.setBase(SystemClock.elapsedRealtime() + timeWhenStopped);
+                baseTime = SystemClock.elapsedRealtime() + timeWhenStopped;
                 chronometer.start();
                 saveButton.setVisibility(View.INVISIBLE);
                 stopButton.setText("Stop");
                 timerIsStarted = true;
             } else {
-                //saveTime = (int) (SystemClock.elapsedRealtime() - chronometer.getBase()) / 1000;
+                timeWhenStopped = (int) (chronometer.getBase() - SystemClock.elapsedRealtime());
+                adjustForTimeError();
                 chronometer.stop();
-                timeWhenStopped = chronometer.getBase() - SystemClock.elapsedRealtime();
-                elapsedSeconds = SystemClock.elapsedRealtime() - chronometer.getBase();
-                todayTime += (int) elapsedSeconds;
+                elapsedSeconds = Math.abs(timeWhenStopped);
 
                 saveButton.setVisibility(View.VISIBLE);
                 stopButton.setText("Start");
@@ -116,37 +105,141 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
             }
         });
 
-
         saveButton.setVisibility(View.INVISIBLE);
         saveButton.setOnClickListener(v1 -> {
             if(!timerIsStarted) {
                 if(!isSaved) {
-                    //int elapsedSeconds = (int) Math.floor((SystemClock.elapsedRealtime() - chronometer.getBase()) / 1000);
-                    todayStepsView.setVisibility(View.VISIBLE);
-                    todayTimeView.setVisibility(View.VISIBLE);
-                    textView.setVisibility(View.VISIBLE);
-                    textView2.setVisibility(View.VISIBLE);
-
-                    todaySteps += totalSteps;
-                    todayStepsView.setText(String.valueOf((int)Math.floor(todaySteps)));
-                    todayTimeView.setText(String.valueOf((int) Math.floor(todayTime)));
-                    writeFile(v1, elapsedSeconds);
-
-
-                    mListener.OnSaveButtonPressed(v);
-                    steps.setText(String.valueOf(totalSteps));
+                    todayTime += Math.abs(elapsedSeconds);
+                    int[]convertedTime = convertTime(todayTime / 1000);
+                    String todaysTimeString = String.format("%02d",convertedTime[0]) + ":" + String.format("%02d",convertedTime[1]) + ":" + String.format("%02d",convertedTime[2]);//put into method
+                    //Log.v("LOGS", todayTime + " " + elapsedSeconds + " " + todaysTimeString);
+                    //todayStepsView.setText(String.valueOf((int)Math.floor(todaySteps)));
+                    //todayTimeView.setText(todaysTimeString);
+                    writeFile(v1, Math.abs(elapsedSeconds));
+                    setTodayValues();
                     isSaved = true;
+                    todaySteps += totalSteps;
+                    elapsedSeconds = 0;
                     totalSteps = 0;
                     timeWhenStopped = 0;
+                    stoppedTime = 0;
+                    steps.setText(String.valueOf(totalSteps));
                     chronometer.setBase(SystemClock.elapsedRealtime());
+                    mListener.OnSaveButtonPressed();
                 }
             } else {
                 Toast.makeText(this.getContext(), "Cannot save while running", Toast.LENGTH_SHORT).show();
             }
 
         });
-
+        getPreferences();
         return v;
+    }
+
+    public void setTodayValues() {
+        ArrayList<Integer> times = new ArrayList<>();
+        ArrayList<String> dates = new ArrayList<>();
+        ArrayList<Integer> steps = new ArrayList<>();
+        try {
+            FileInputStream fileInputStream = v.getContext().openFileInput("Work_Data_Final2.txt");
+            InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream);
+            BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+
+            String lines;
+            String[] split;
+            while ((lines = bufferedReader.readLine()) != null) {
+                split = lines.split("\\s+");
+                times.add(Integer.parseInt(split[0]));
+                dates.add(split[1]);
+                steps.add(Integer.parseInt(split[2]));
+            }
+            fileInputStream.close();
+            inputStreamReader.close();
+            bufferedReader.close();
+            ArrayList<Integer> newTimes = new ArrayList<>();
+            ArrayList<String> newDates = new ArrayList<>();
+            ArrayList<Integer> newSteps = new ArrayList<>();
+
+
+            //fill the new arraylist with the sum of the values of a any arbitrary day
+            if(!dates.isEmpty()) {
+                for(int i = 0; i < dates.size(); i++) {
+                    //if the new arraylist does not contain the value, add it then search for
+                    //values that are equal to it
+                    if(!newDates.contains(dates.get(i))) {
+                        newDates.add(dates.get(i));
+                        newTimes.add(times.get(i));
+                        newSteps.add(steps.get(i));
+                        // if the value is in the arraylist then add to the time and steps
+                    } else {
+                        int tempTime = times.get(i);
+                        int tempSteps = steps.get(i);
+                        int index = newDates.indexOf(dates.get(i));
+
+                        tempTime += newTimes.get(index);
+                        tempSteps += newSteps.get(index);
+
+                        newSteps.set(index, tempSteps);
+                        newTimes.set(index, tempTime);
+                    }
+                }
+            }
+
+            for(int i = 0; i < newTimes.size(); i++) {
+                if(newDates.get(i).equals(new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date()))) {
+                    int[] convertedTodayTime = StopwatchFragment.convertTime(newTimes.get(i));
+                    todayTimeView.setText(String.format("%02d",convertedTodayTime[0]) + ":" + String.format("%02d",convertedTodayTime[1]) + ":" + String.format("%02d",convertedTodayTime[2]));
+                    todayStepsView.setText(String.valueOf(newSteps.get(i)));
+                }
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public static int[] convertTime(int time) {
+        int hours = time / 3600;
+        int remainder = time - hours * 3600;
+        int mins = remainder / 60;
+        remainder = remainder - mins * 60;
+        int seconds = remainder;
+
+        return new int[]{hours, mins, seconds};
+    }
+
+    public void setViews(View v) {
+        todayStepsView = v.findViewById(R.id.today_steps);
+        todayTimeView = v.findViewById(R.id.today_time);
+
+        textView = v.findViewById(R.id.textView10);
+        textView2 = v.findViewById(R.id.textView6);
+
+        todayStepsView.setText("0");
+        todayTimeView.setText("00:00:00");
+
+        //todayStepsView.setVisibility(View.INVISIBLE);
+        //todayTimeView.setVisibility(View.INVISIBLE);
+
+        //textView.setVisibility(View.INVISIBLE);
+        //textView2.setVisibility(View.INVISIBLE);
+
+        chronometer =  v.findViewById(R.id.stopwatch);
+
+        steps = (TextView) v.findViewById(R.id.step_counter2);
+        steps.setText(String.valueOf(totalSteps));
+    }
+
+    public void createFile(View v) {
+        if(!fileExists(v, "Work_Data_Final2.txt")) {
+            try {
+                FileOutputStream fileOutputStream = v.getContext().openFileOutput("Work_Data_Final2.txt", MODE_PRIVATE);
+                fileOutputStream.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     public boolean fileExists(View v, String fileName) {
@@ -155,29 +248,30 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
     }
 
     public void writeFile(View v, long elapsedSeconds) {
-        //final int elapsedSeconds = (int) (SystemClock.elapsedRealtime() - chronometer.getBase()) / 1000;
         String date = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
-
-        String finalString = elapsedSeconds + " " + date + " " + totalSteps;
+        String finalString = (elapsedSeconds / 1000) + " " + date + " " + totalSteps;
         try {
             FileInputStream fileInputStream = v.getContext().openFileInput("Work_Data_Final2.txt");
             InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream);
 
             BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-            StringBuilder stringBuffer = new StringBuilder();
+            StringBuffer stringBuffer = new StringBuffer();
 
             String lines;
             while ((lines = bufferedReader.readLine()) != null) {
                 stringBuffer.append(lines).append("\n");
             }
-
+            stringBuffer.append(finalString).append("\n");
+            fileInputStream.close();
+            inputStreamReader.close();
+            bufferedReader.close();
             try {
                 FileOutputStream fileOutputStream = v.getContext().openFileOutput("Work_Data_Final2.txt", MODE_PRIVATE);
                 fileOutputStream.write(stringBuffer.toString().getBytes());
-                fileOutputStream.write(finalString.getBytes());
+                //fileOutputStream.write(finalString.getBytes());
                 fileOutputStream.close();
 
-                Toast.makeText(v.getContext(), "Saved!", Toast.LENGTH_SHORT).show();
+                //Toast.makeText(v.getContext(), "Saved!", Toast.LENGTH_SHORT).show();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -195,10 +289,12 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
     }
 
 
+
+
     @Override
     public void onResume() {
         super.onResume();
-
+        //getPreferences();
         Sensor countSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
         if(countSensor != null) {
             sensorManager.registerListener(this, countSensor, SensorManager.SENSOR_DELAY_UI);
@@ -207,6 +303,134 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
         }
     }
 
+    @Override
+    public void onStop() {
+        super.onStop();
+        SharedPreferences preferences = Objects.requireNonNull(this.getActivity()).getSharedPreferences("sharedPrefs", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = preferences.edit();
+        elapsedSeconds = (int) (chronometer.getBase() - SystemClock.elapsedRealtime());
+        String[] arr = String.valueOf(chronometer.getText()).split(":");
+        //adjustForTimeError();
+        //Log.v("LOGS", "STOP: TIMESTOPPED: " + arr[arr.length - 1] + " SYSTEMCLOCK: " + timeWhenStopped);
+        editor.putInt("stoppedTime", (int) (chronometer.getBase() - SystemClock.elapsedRealtime()));
+        //editor.putInt("timeWhenStopped", (int) (int) (chronometer.getBase() - SystemClock.elapsedRealtime()));
+
+        if(timerIsStarted) {
+            //timeWhenStopped = (int) (chronometer.getBase() - SystemClock.elapsedRealtime());
+            //editor.putInt("timeWhenStopped", (int) (chronometer.getBase() - SystemClock.elapsedRealtime()));
+            //editor.putInt("timeWhenStopped", (int) timeWhenStopped);
+        } else {
+            editor.putInt("timeWhenStopped", (int) timeWhenStopped);
+        }
+        editor.putBoolean("isTimerRunning", timerIsStarted);
+        editor.putInt("todayTime", todayTime);
+        editor.putInt("todaySteps", todaySteps);
+        editor.putInt("elapsedTime", (int) elapsedSeconds);
+        editor.putLong("base", System.currentTimeMillis());
+        editor.putLong("chromBase", chronometer.getBase());
+        //editor.putBoolean("isSaved", isSaved);
+        editor.commit();
+    }
+
+    /**
+     * The chronometer sometimes will be off by up to half a second so this method
+     * adjusts the timeWhenStopped variable to compensate for that difference
+     * @return
+     */
+    public void adjustForTimeError() {
+        String[] arr = String.valueOf(chronometer.getText()).split(":");
+        int second = Integer.parseInt(arr[arr.length - 1]);
+        if(second < Math.abs(timeWhenStopped / 1000)) {
+            timeWhenStopped -= (timeWhenStopped % 1000) - 250;
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        SharedPreferences preferences = Objects.requireNonNull(this.getActivity()).getSharedPreferences("sharedPrefs", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = preferences.edit();
+        String[] arr = String.valueOf(chronometer.getText()).split(":");
+        //adjustForTimeError();
+        editor.putInt("stoppedTime", (int) (SystemClock.elapsedRealtime() + chronometer.getBase()));
+        if(!timerIsStarted) {
+            editor.putInt("timeWhenStopped", (int) (chronometer.getBase() - SystemClock.elapsedRealtime()));
+        } else {
+            editor.putInt("timeWhenStopped", (int) timeWhenStopped);
+        }
+        //editor.putInt("timeWhenStopped", (int) timeWhenStopped);
+        editor.putBoolean("isTimerRunning", timerIsStarted);
+        editor.putInt("todayTime", todayTime);
+        editor.putInt("todaySteps", todaySteps);
+        editor.putInt("elapsedTime", (int) elapsedSeconds);
+        //editor.putBoolean("isSaved", isSaved);
+        editor.commit();
+    }
+
+    public void getPreferences() {
+        SharedPreferences preferences = Objects.requireNonNull(this.getActivity()).getSharedPreferences("sharedPrefs", Context.MODE_PRIVATE);
+        setTodayValues();
+        if(preferences.contains("stoppedTime")) {
+            stoppedTime = preferences.getLong("base", 0) - System.currentTimeMillis();
+            //Log.v("LOGS2", "STOP: TIMESTOPPED: " + stoppedTime);
+            //chronometer.setBase(SystemClock.elapsedRealtime() + timeWhenStopped + stoppedTime);
+        }
+        if(preferences.contains("timeWhenStopped")) {
+            timeWhenStopped = preferences.getInt("timeWhenStopped", 0);
+            //chronometer.setBase(SystemClock.elapsedRealtime() + timeWhenStopped);
+            //chronometer.setBase(SystemClock.elapsedRealtime() + timeWhenStopped + stoppedTime);
+        }
+        if(preferences.contains("elapsedTime")) {
+            elapsedSeconds = preferences.getInt("elapsedTime", 0);
+
+        }
+        if(preferences.contains("isTimerRunning")) {
+            //timerIsStarted = preferences.getBoolean("isTimerRunning", false);
+            //chronometer.setBase(SystemClock.elapsedRealtime() + timeWhenStopped + stoppedTime);
+            //chronometer.start();
+
+            if(preferences.getBoolean("isTimerRunning", false)) {
+                //chronometer.setBase(preferences.getLong("base", 0) + timeWhenStopped);
+                Log.v("LOGS3", " TIMEWHENSTOPPED: " + timeWhenStopped + " ELAPSEDSECONDS: " + elapsedSeconds);
+                chronometer.setBase(SystemClock.elapsedRealtime() + stoppedTime + elapsedSeconds);
+                chronometer.start();
+                saveButton.setVisibility(View.INVISIBLE);
+                stopButton.setText("Stop");
+                timerIsStarted = true;
+            } else {
+                chronometer.setBase(SystemClock.elapsedRealtime() + timeWhenStopped);
+                saveButton.setVisibility(View.VISIBLE);
+            }
+        }
+
+        if(preferences.contains("todayTime")) {
+            todayTime = preferences.getInt("todayTime", 0);
+            int[]convertedTime = convertTime((int) todayTime / 1000);
+            String todaysTimeString = String.format("%02d",convertedTime[0]) + ":" + String.format("%02d",convertedTime[1]) + ":" + String.format("%02d",convertedTime[2]);
+            //textView2.setVisibility(View.VISIBLE);
+            //todayTimeView.setVisibility(View.VISIBLE);
+            //todayTimeView.setText(todaysTimeString);
+
+            //textView.setVisibility(View.VISIBLE);
+            //todayStepsView.setVisibility(View.VISIBLE);
+        }
+
+        if(preferences.contains("todaySteps")) {
+            //todaySteps = preferences.getInt("todaySteps", 0);
+            //todayStepsView.setText(String.valueOf(totalSteps));
+        }
+        /*
+        if(preferences.contains("isSaved")) {
+            isSaved = preferences.getBoolean("isSaved", false);
+        }
+        */
+        //chronometer.setBase(SystemClock.elapsedRealtime() + timeWhenStopped);
+    }
+
+    public void setTime(TextView v, int[] convertedTime) {
+        String todaysTimeString = String.format("%02d",convertedTime[0]) + ":" + String.format("%02d",convertedTime[1]) + ":" + String.format("%02d",convertedTime[2]);
+        v.setText(todaysTimeString);
+    }
 
     @Override
     public void onSensorChanged(SensorEvent event) {
@@ -229,7 +453,7 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
     }
 
     protected interface OnSaveButtonPressedListener {
-        void OnSaveButtonPressed(View v);
+        void OnSaveButtonPressed();
     }
 
 

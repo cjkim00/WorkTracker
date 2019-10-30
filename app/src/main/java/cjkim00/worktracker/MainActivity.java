@@ -1,9 +1,6 @@
 package cjkim00.worktracker;
 
-import android.app.AlarmManager;
-import android.app.PendingIntent;
-import android.content.Context;
-import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.support.design.widget.TabLayout;
 import android.support.v4.view.ViewPager;
@@ -11,8 +8,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
-
-import java.util.Calendar;
 
 
 public class MainActivity extends AppCompatActivity implements StopwatchFragment.OnSaveButtonPressedListener{
@@ -47,10 +42,32 @@ public class MainActivity extends AppCompatActivity implements StopwatchFragment
         tabLayout.setupWithViewPager(viewPager);
     }
 
+    @Override
+    public void onPause() {
+        super.onPause();
+        SharedPreferences preferences = getSharedPreferences("sharedPrefs", 0);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putString("CLASSLABEL", this.getLocalClassName()); // value to store
+
+        // Commit to storage
+        editor.commit();
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (true) {
+            //add popup window to save before closing eventually
+        } else {
+            super.onBackPressed();
+        }
+    }
+
 
 
     @Override
-    public void OnSaveButtonPressed(View v) {
-        statisticsFragment.updateStats(v);
+    public void OnSaveButtonPressed() {
+        //stopwatchFragment.writeFile(stopwatchFragment.getView(), stopwatchFragment.elapsedSeconds);
+        statisticsFragment.updateStats();
     }
+
 }
