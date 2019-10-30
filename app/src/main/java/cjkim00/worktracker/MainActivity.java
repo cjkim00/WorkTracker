@@ -40,10 +40,7 @@ public class MainActivity extends AppCompatActivity implements StopwatchFragment
         viewPager.setAdapter(viewPagerAdapter);
         TabLayout tabLayout = findViewById(R.id.tabs);
         tabLayout.setupWithViewPager(viewPager);
-        //Intent intent = new Intent(this, DayTrackerService.class);
-        //startService(intent);
 
-        //startService(new Intent(this, DayTrackerService.class));
     }
 
     @Override
@@ -70,7 +67,6 @@ public class MainActivity extends AppCompatActivity implements StopwatchFragment
 
     @Override
     public void OnSaveButtonPressed() {
-        //stopwatchFragment.writeFile(stopwatchFragment.getView(), stopwatchFragment.elapsedSeconds);
         statisticsFragment.updateStats();
     }
 

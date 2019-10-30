@@ -38,9 +38,7 @@ public class StatisticsFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        //View v = inflater.inflate(R.layout.fragment_statistics, container, false);
         v = inflater.inflate(R.layout.fragment_statistics, container, false);
-        //setViews(v);
         updateStats();
         return v;
     }
@@ -122,7 +120,7 @@ public class StatisticsFragment extends Fragment {
             int[] convertedMinTime = StopwatchFragment.convertTime(minTime);
             int[] convertedAvgTime = StopwatchFragment.convertTime(avgTime);
             int[] convertedMaxTime = StopwatchFragment.convertTime(maxTime);
-            //String hours = String.format("%02d",convertedTime[0]);
+
             String minTimeString = String.format("%02d",convertedMinTime[0]) + ":" + String.format("%02d",convertedMinTime[1]) + ":" + String.format("%02d",convertedMinTime[2]);
             String avgTimeString = String.format("%02d",convertedAvgTime[0]) + ":" + String.format("%02d",convertedAvgTime[1]) + ":" + String.format("%02d",convertedAvgTime[2]);
             String maxTimeString = String.format("%02d",convertedMaxTime[0]) + ":" + String.format("%02d",convertedMaxTime[1]) + ":" + String.format("%02d",convertedMaxTime[2]);
