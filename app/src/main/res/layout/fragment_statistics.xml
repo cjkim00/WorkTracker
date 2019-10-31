@@ -15,7 +15,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="32dp"
         android:layout_marginTop="64dp"
-        android:text="Max Daily Steps"
+        android:text="@string/max_daily_steps"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -25,7 +25,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="64dp"
         android:layout_marginEnd="32dp"
-        android:text="Max Daily Time"
+        android:text="@string/max_daily_time"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -53,7 +53,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="32dp"
         android:layout_marginTop="80dp"
-        android:text="Average Daily Steps"
+        android:text="@string/avg_daily_steps"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/MaxSteps" />
 
@@ -72,7 +72,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="80dp"
         android:layout_marginEnd="32dp"
-        android:text="Average Daily Time"
+        android:text="@string/avg_daily_time"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/MaxTime" />
 
@@ -91,7 +91,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="32dp"
         android:layout_marginTop="80dp"
-        android:text="Min Daily Steps"
+        android:text="@string/min_daily_steps"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/AverageSteps" />
 
@@ -110,7 +110,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="80dp"
         android:layout_marginEnd="32dp"
-        android:text="Min Daily Time"
+        android:text="@string/min_daily_time"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/AverageTime" />
 

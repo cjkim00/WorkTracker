@@ -3,4 +3,17 @@
 
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="Stop">Stop</string>
+    <string name="Start">Start</string>
+    <string name="zero_time">00:00:00</string>
+    <string name="max_daily_steps">Max Daily Steps</string>
+    <string name="max_daily_time">Max Daily Time</string>
+    <string name="avg_daily_steps">Average Daily Steps</string>
+    <string name="avg_daily_time">Average Daily Time</string>
+    <string name="min_daily_steps">Min Daily Steps</string>
+    <string name="min_daily_time">Min Daily Time</string>
+    <string name="Save">Save</string>
+    <string name = "Steps">Steps</string>
+    <string name = "today_steps">Today\'s Steps</string>
+    <string name = "today_time">Today\'s time</string>
 </resources>

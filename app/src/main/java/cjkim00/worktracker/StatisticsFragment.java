@@ -1,21 +1,18 @@
 package cjkim00.worktracker;
 
-
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-
 
 /**
  * A simple {@link Fragment} subclass.
@@ -35,7 +32,7 @@ public class StatisticsFragment extends Fragment {
 
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         v = inflater.inflate(R.layout.fragment_statistics, container, false);
@@ -109,29 +106,13 @@ public class StatisticsFragment extends Fragment {
                 }
             }
 
-            int minTime = getMin(newTimes);
-            int avgTime = getAverage(newTimes);
-            int maxTime = getMax(newTimes);
+            minSteps.setText(String.valueOf(getMin(newSteps)));
+            averageSteps.setText(String.valueOf(getAverage(newSteps)));
+            maxSteps.setText(String.valueOf(getMax(newSteps)));
 
-            int minStep = getMin(newSteps);
-            int avgStep = getAverage(newSteps);
-            int maxStep = getMax(newSteps);
-
-            int[] convertedMinTime = StopwatchFragment.convertTime(minTime);
-            int[] convertedAvgTime = StopwatchFragment.convertTime(avgTime);
-            int[] convertedMaxTime = StopwatchFragment.convertTime(maxTime);
-
-            String minTimeString = String.format("%02d",convertedMinTime[0]) + ":" + String.format("%02d",convertedMinTime[1]) + ":" + String.format("%02d",convertedMinTime[2]);
-            String avgTimeString = String.format("%02d",convertedAvgTime[0]) + ":" + String.format("%02d",convertedAvgTime[1]) + ":" + String.format("%02d",convertedAvgTime[2]);
-            String maxTimeString = String.format("%02d",convertedMaxTime[0]) + ":" + String.format("%02d",convertedMaxTime[1]) + ":" + String.format("%02d",convertedMaxTime[2]);
-
-            minSteps.setText(String.valueOf(minStep));
-            averageSteps.setText(String.valueOf(avgStep));
-            maxSteps.setText(String.valueOf(maxStep));
-
-            minTimes.setText(minTimeString);
-            averageTimeWorked.setText(avgTimeString);
-            maxTimeWorked.setText(maxTimeString);
+            minTimes.setText(formatTime(getMin(newTimes)));
+            averageTimeWorked.setText(formatTime(getAverage(newTimes)));
+            maxTimeWorked.setText(formatTime(getMax(newTimes)));
 
 
         } catch (IOException e) {
@@ -139,7 +120,10 @@ public class StatisticsFragment extends Fragment {
         }
     }
 
-
+    public String formatTime(int time) {
+        int[] convertedTodayTime = StopwatchFragment.convertTime(time);
+        return String.format("%02d",convertedTodayTime[0]) + ":" + String.format("%02d",convertedTodayTime[1]) + ":" + String.format("%02d",convertedTodayTime[2]);
+    }
 
 
     public int getAverage(ArrayList<Integer> list) {
