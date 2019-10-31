@@ -29,7 +29,6 @@ public class PedometerService extends Service implements SensorEventListener {
     @Override
     public void onSensorChanged(SensorEvent event) {
         totalSteps++;
-
     }
 
     @Override
@@ -67,7 +66,7 @@ public class PedometerService extends Service implements SensorEventListener {
         public int onStartCommand(Intent intent, int flags, int startId) {
             //Toast.makeText(this, "service starting", Toast.LENGTH_SHORT).show();
 
-            totalSteps = 0;
+            totalSteps = -1;
             sensorManager = (SensorManager)  Objects.requireNonNull(getSystemService(Context.SENSOR_SERVICE));
             Sensor countSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
             if(countSensor != null) {

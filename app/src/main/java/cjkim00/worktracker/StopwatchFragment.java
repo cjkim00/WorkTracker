@@ -273,7 +273,7 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
     @Override
     public void onResume() {
         super.onResume();
-        getPreferences();
+        //getPreferences();
         Sensor countSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
         if(countSensor != null) {
             sensorManager.registerListener(this, countSensor, SensorManager.SENSOR_DELAY_UI);
@@ -330,11 +330,14 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        shutdownToDo();
+        //shutdownToDo();
     }
 
     public void getPreferences() {
         int stoppedSteps = PedometerService.getSteps();
+        if(stoppedSteps < 0) {
+            stoppedSteps = 0;
+        }
         Intent intent = new Intent(this.getContext(), PedometerService.class);
         this.getContext().stopService(intent);
         SharedPreferences preferences = Objects.requireNonNull(this.getActivity()).getSharedPreferences("sharedPrefs", Context.MODE_PRIVATE);
@@ -370,6 +373,9 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
 
         if(preferences.contains("totalSteps")) {
             totalSteps = preferences.getInt("totalSteps", 0) + stoppedSteps;
+            if(timerIsStarted) {
+                totalSteps--;
+            }
             Log.v("STEPS2", " STEPS: " + totalSteps + " STOPPEDSTEPS: " + stoppedSteps);
             steps.setText(String.valueOf(totalSteps));
         }
