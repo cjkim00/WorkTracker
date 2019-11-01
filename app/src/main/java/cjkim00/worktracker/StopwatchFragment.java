@@ -12,12 +12,15 @@ import android.os.Bundle;
 import android.os.SystemClock;
 import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
+import android.text.method.LinkMovementMethod;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.Chronometer;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -42,10 +45,11 @@ import static android.content.Context.MODE_PRIVATE;
 public class StopwatchFragment extends Fragment implements SensorEventListener {
 
     boolean timerIsStarted = false;
-    boolean isSaved = false;
+    boolean isSaved = true;
 
     Button saveButton;
     Button stopButton;
+    Button resetButton;
 
     Chronometer chronometer;
 
@@ -66,6 +70,9 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
     TextView todayTimeView;
     TextView textView;
     TextView textView2;
+    TextView todays_values;
+
+    ScrollView scrollView;
 
     View v;
     private OnSaveButtonPressedListener mListener;
@@ -85,13 +92,14 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
 
         saveButton = v.findViewById(R.id.save_button);
         stopButton = v.findViewById(R.id.start_button);
+        resetButton = v.findViewById(R.id.reset_button);
         stopButton.setOnClickListener(v12 -> {
 
             if(!timerIsStarted) {
                 chronometer.setBase(SystemClock.elapsedRealtime() + timeWhenStopped);
                 baseTime = SystemClock.elapsedRealtime() + timeWhenStopped;
                 chronometer.start();
-                saveButton.setVisibility(View.INVISIBLE);
+                //saveButton.setVisibility(View.INVISIBLE);
                 stopButton.setText(getString(R.string.Stop));
                 timerIsStarted = true;
             } else {
@@ -99,36 +107,55 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
                 adjustForTimeError();
                 chronometer.stop();
                 elapsedSeconds = Math.abs(timeWhenStopped);
-                saveButton.setVisibility(View.VISIBLE);
+                //saveButton.setVisibility(View.VISIBLE);
                 stopButton.setText(getString(R.string.Start));
                 timerIsStarted = false;
                 isSaved = false;
             }
         });
 
-        saveButton.setVisibility(View.INVISIBLE);
+        //saveButton.setVisibility(View.INVISIBLE);
         saveButton.setOnClickListener(v1 -> {
             if(!timerIsStarted) {
                 if(!isSaved) {
                     todayTime += Math.abs(elapsedSeconds);
                     writeFile(v1, Math.abs(elapsedSeconds));
-                    isSaved = true;
+                    //isSaved = true;
                     todaySteps += totalSteps;
                     setTodayValues();
-                    elapsedSeconds = ZERO;
-                    totalSteps = ZERO;
-                    timeWhenStopped = ZERO;
-                    stoppedTime = ZERO;
-                    steps.setText(String.valueOf(totalSteps));
-                    chronometer.setBase(SystemClock.elapsedRealtime());
+                    resetValues();
+                    //elapsedSeconds = ZERO;
+                    //totalSteps = ZERO;
+                    //timeWhenStopped = ZERO;
+                    //stoppedTime = ZERO;
+                    //steps.setText(String.valueOf(totalSteps));
+                    //chronometer.setBase(SystemClock.elapsedRealtime());
                     mListener.OnSaveButtonPressed();
                 }
             } else {
                 Toast.makeText(this.getContext(), "Cannot save while running", Toast.LENGTH_SHORT).show();
             }
         });
+
+        resetButton.setOnClickListener(v -> {
+            if(!timerIsStarted) {
+                resetValues();
+            } else {
+                Toast.makeText(this.getContext(), "Cannot reset while running", Toast.LENGTH_SHORT).show();
+            }
+        });
         getPreferences();
         return v;
+    }
+
+    public void resetValues() {
+        isSaved = true;
+        elapsedSeconds = ZERO;
+        totalSteps = ZERO;
+        timeWhenStopped = ZERO;
+        stoppedTime = ZERO;
+        steps.setText(String.valueOf(totalSteps));
+        chronometer.setBase(SystemClock.elapsedRealtime());
     }
 
     public void setTodayValues() {
@@ -142,12 +169,20 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
 
             String lines;
             String[] split;
+            StringBuilder stringBuffer = new StringBuilder();
             while ((lines = bufferedReader.readLine()) != null) {
+
                 split = lines.split("\\s+");
                 times.add(Integer.parseInt(split[0]));
                 dates.add(split[1]);
                 steps.add(Integer.parseInt(split[2]));
+                if(split[1].equals(new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date()))) {
+                    stringBuffer.append("Steps: ").append(String.valueOf(split[2])).append("    Time: ").append(formatTime(Integer.parseInt(split[0]))).append("\n");
+                }
             }
+
+            todays_values.setText(stringBuffer);
+
             fileInputStream.close();
             inputStreamReader.close();
             bufferedReader.close();
@@ -206,6 +241,18 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
     public void setViews(View v) {
         todayStepsView = v.findViewById(R.id.today_steps);
         todayTimeView = v.findViewById(R.id.today_time);
+        todays_values = v.findViewById(R.id.todays_values);
+        scrollView = (ScrollView) v.findViewById(R.id.SCROLLER_ID);
+
+        //todays_values.setMovementMethod(new LinkMovementMethod());
+        scrollView.post(new Runnable() {
+            @Override
+            public void run() {
+                //scrollView.smoothScrollTo(0, todays_values.getBottom());
+                scrollView.fullScroll(View.FOCUS_DOWN);
+            }
+        });
+
 
         textView = v.findViewById(R.id.textView10);
         textView2 = v.findViewById(R.id.textView6);
@@ -292,6 +339,7 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
             editor.putInt("timeWhenStopped", (int) timeWhenStopped);
         }
         editor.putBoolean("isTimerRunning", timerIsStarted);
+        editor.putBoolean("isSaved", isSaved);
         editor.putInt("todayTime", todayTime);
         editor.putInt("totalSteps", totalSteps);
         editor.putInt("elapsedTime", (int) elapsedSeconds);
@@ -340,19 +388,22 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
         if(preferences.contains("elapsedTime")) {
             elapsedSeconds = preferences.getInt("elapsedTime", ZERO);
         }
+        if(preferences.contains("isSaved")) {
+            isSaved = preferences.getBoolean("isSaved", false);
+        }
         if(preferences.contains("isTimerRunning")) {
             if(preferences.getBoolean("isTimerRunning", false)) {
                 Log.v("LOGS3", " TIMEWHENSTOPPED1: " + timeWhenStopped + " ELAPSEDSECONDS: " + elapsedSeconds);
                 chronometer.setBase(SystemClock.elapsedRealtime() + stoppedTime + elapsedSeconds);
                 chronometer.start();
-                saveButton.setVisibility(View.INVISIBLE);
+                //saveButton.setVisibility(View.INVISIBLE);
                 stopButton.setText(getString(R.string.Stop));
                 timerIsStarted = true;
             } else {
                 Log.v("LOGS3", " TIMEWHENSTOPPED2: " + timeWhenStopped + " ELAPSEDSECONDS: " + elapsedSeconds);
                 timerIsStarted = false;
                 chronometer.setBase(SystemClock.elapsedRealtime() + timeWhenStopped);
-                saveButton.setVisibility(View.VISIBLE);
+                //saveButton.setVisibility(View.VISIBLE);
             }
         }
 

@@ -16,4 +16,5 @@
     <string name = "Steps">Steps</string>
     <string name = "today_steps">Today\'s Steps</string>
     <string name = "today_time">Today\'s time</string>
+    <string name = "reset">Reset</string>
 </resources>
