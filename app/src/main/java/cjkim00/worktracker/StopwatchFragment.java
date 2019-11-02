@@ -10,6 +10,7 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.SystemClock;
+import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.text.method.LinkMovementMethod;
@@ -24,6 +25,10 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.jjoe64.graphview.GraphView;
+import com.jjoe64.graphview.series.DataPoint;
+import com.jjoe64.graphview.series.LineGraphSeries;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -35,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Random;
 
 import static android.content.Context.MODE_PRIVATE;
 
@@ -53,11 +59,15 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
 
     Chronometer chronometer;
 
+    GraphView graphView;
+
     int timeWhenStopped = 0;
     int totalSteps = 0;
     int todaySteps = 0;
     int todayTime = 0;
     final int ZERO = 0;
+
+    LineGraphSeries<DataPoint> series;
 
     long stoppedTime = 0;
     long elapsedSeconds = 0;
@@ -88,6 +98,7 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
         v = inflater.inflate(R.layout.fragment_stopwatch, container, false);
         setViews(v);
         createFile(v);
+        //addTestData();
         sensorManager = (SensorManager) Objects.requireNonNull(getActivity()).getSystemService(Context.SENSOR_SERVICE);
 
         saveButton = v.findViewById(R.id.save_button);
@@ -137,6 +148,8 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
             }
         });
 
+
+
         resetButton.setOnClickListener(v -> {
             if(!timerIsStarted) {
                 resetValues();
@@ -171,7 +184,6 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
             String[] split;
             StringBuilder stringBuffer = new StringBuilder();
             while ((lines = bufferedReader.readLine()) != null) {
-
                 split = lines.split("\\s+");
                 times.add(Integer.parseInt(split[0]));
                 dates.add(split[1]);
@@ -212,12 +224,21 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
                     }
                 }
             }
+
+            //LineGraphSeries<DataPoint> series = new LineGraphSeries<>();
             for(int i = 0; i < newTimes.size(); i++) {
                 if(newDates.get(i).equals(new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date()))) {
                     todayTimeView.setText(formatTime(newTimes.get(i)));
                     todayStepsView.setText(String.valueOf(newSteps.get(i)));
                 }
+
+                //series.appendData(new DataPoint(i, newSteps.get(i)), true, newSteps.size());
             }
+            //graphView.addSeries(series);
+
+
+
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -242,6 +263,8 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
         todayStepsView = v.findViewById(R.id.today_steps);
         todayTimeView = v.findViewById(R.id.today_time);
         todays_values = v.findViewById(R.id.todays_values);
+        graphView = v.findViewById(R.id.graph);
+        series = new LineGraphSeries<DataPoint>();
         scrollView = (ScrollView) v.findViewById(R.id.SCROLLER_ID);
 
         //todays_values.setMovementMethod(new LinkMovementMethod());
@@ -252,7 +275,6 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
                 scrollView.fullScroll(View.FOCUS_DOWN);
             }
         });
-
 
         textView = v.findViewById(R.id.textView10);
         textView2 = v.findViewById(R.id.textView6);
@@ -311,6 +333,12 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        //shutdownToDo();
     }
 
     @Override
@@ -413,9 +441,20 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
 
         if(preferences.contains("totalSteps")) {
             totalSteps = preferences.getInt("totalSteps", ZERO) + stoppedSteps;
+
+            Sensor countSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
+            if(countSensor != null) {
+                if(timerIsStarted) {
+                    totalSteps--;
+                }
+            } else {
+                //Toast.makeText(this.getContext(), "Sensor Not found!", Toast.LENGTH_SHORT).show();
+            }
+            /*
             if(timerIsStarted) {
                 totalSteps--;
             }
+            */
             Log.v("STEPS2", " STEPS: " + totalSteps + " STOPPEDSTEPS: " + stoppedSteps);
             steps.setText(String.valueOf(totalSteps));
         }
@@ -440,6 +479,45 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
     public void onAttach(Context context) {
         super.onAttach(context);
         mListener = (OnSaveButtonPressedListener) context;
+    }
+
+    public void addTestData() {
+        String date = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        StringBuilder temp = new StringBuilder();
+        Random r = new Random();
+        //for(int i = 1; i <= 12; i++) {
+            for(int j = 1; j <= 5; j++) {
+                temp.append(String.valueOf(r.nextInt(1300) + 100)).append(" ").append(date).append(" ").append(String.valueOf(r.nextInt(500) + 100)).append("\n");
+                //Log.v("TESTDATA", temp.toString());
+            }
+        //}
+
+        try {
+            FileInputStream fileInputStream = v.getContext().openFileInput("Work_Data_Final2.txt");
+            InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream);
+
+            BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+            StringBuilder stringBuffer = new StringBuilder();
+
+            //String lines;
+            //while ((lines = bufferedReader.readLine()) != null) {
+            //    stringBuffer.append(lines).append("\n");
+            //}
+            //stringBuffer.append(temp).append("\n");
+            fileInputStream.close();
+            inputStreamReader.close();
+            bufferedReader.close();
+            try {
+                FileOutputStream fileOutputStream = v.getContext().openFileOutput("Work_Data_Final2.txt", MODE_PRIVATE);
+                fileOutputStream.write(temp.toString().getBytes());
+                fileOutputStream.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     protected interface OnSaveButtonPressedListener {

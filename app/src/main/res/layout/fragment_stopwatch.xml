@@ -119,8 +119,9 @@
         android:fillViewport="true"
         android:scrollbars="vertical"
         app:layout_constraintBottom_toTopOf="@+id/start_button"
-        app:layout_constraintTop_toBottomOf="@+id/today_steps"
-        tools:layout_editor_absoluteX="0dp">
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/today_steps">
 
         <TextView
             android:id="@+id/todays_values"
