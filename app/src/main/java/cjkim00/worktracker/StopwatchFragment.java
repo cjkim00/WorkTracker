@@ -508,49 +508,7 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
         super.onAttach(context);
         mListener = (OnSaveButtonPressedListener) context;
     }
-
-    /**
-     * A method to add random data to the file for testing purposes.
-     */
-    public void addTestData() {
-        String date = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
-        StringBuilder temp = new StringBuilder();
-        Random r = new Random();
-        for(int i = 7; i <= 7; i++) {
-            for(int j = 1; j <= 5; j++) {
-                temp.append(String.valueOf(r.nextInt(1300) + 100)).append(" ").append("2019-11-").append(String.valueOf(i) + " ").append(String.valueOf(r.nextInt(500) + 100)).append("\n");
-                //Log.v("TESTDATA", temp.toString());
-            }
-        }
-
-        try {
-            FileInputStream fileInputStream = v.getContext().openFileInput("Work_Data_Final2.txt");
-            InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream);
-
-            BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-            StringBuilder stringBuffer = new StringBuilder();
-
-            //String lines;
-            //while ((lines = bufferedReader.readLine()) != null) {
-            //    stringBuffer.append(lines).append("\n");
-            //}
-            //stringBuffer.append(temp).append("\n");
-            fileInputStream.close();
-            inputStreamReader.close();
-            bufferedReader.close();
-            try {
-                FileOutputStream fileOutputStream = v.getContext().openFileOutput("Work_Data_Final2.txt", MODE_PRIVATE);
-                fileOutputStream.write(temp.toString().getBytes());
-                fileOutputStream.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
+    
 
     protected interface OnSaveButtonPressedListener {
         void OnSaveButtonPressed();
