@@ -10,11 +10,8 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.SystemClock;
-import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
-import android.text.method.LinkMovementMethod;
-import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -52,38 +49,29 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
 
     boolean timerIsStarted = false;
     boolean isSaved = true;
-
     Button saveButton;
     Button stopButton;
     Button resetButton;
-
     Chronometer chronometer;
-
     GraphView graphView;
-
     int timeWhenStopped = 0;
     int totalSteps = 0;
     int todaySteps = 0;
     int todayTime = 0;
     final int ZERO = 0;
-
     LineGraphSeries<DataPoint> series;
-
     long stoppedTime = 0;
     long elapsedSeconds = 0;
     long baseTime = 0;
-
     SensorManager sensorManager;
-
+    String todaysDate;
     TextView steps;
     TextView todayStepsView;
     TextView todayTimeView;
     TextView textView;
     TextView textView2;
     TextView todays_values;
-
     ScrollView scrollView;
-
     View v;
     private OnSaveButtonPressedListener mListener;
 
@@ -96,21 +84,20 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         v = inflater.inflate(R.layout.fragment_stopwatch, container, false);
-        setViews(v);
-        createFile(v);
+        setViews();
+        createFile();
         //addTestData();
+        Log.v("logtest", "resume");
         sensorManager = (SensorManager) Objects.requireNonNull(getActivity()).getSystemService(Context.SENSOR_SERVICE);
 
         saveButton = v.findViewById(R.id.save_button);
         stopButton = v.findViewById(R.id.start_button);
         resetButton = v.findViewById(R.id.reset_button);
         stopButton.setOnClickListener(v12 -> {
-
             if(!timerIsStarted) {
                 chronometer.setBase(SystemClock.elapsedRealtime() + timeWhenStopped);
                 baseTime = SystemClock.elapsedRealtime() + timeWhenStopped;
                 chronometer.start();
-                //saveButton.setVisibility(View.INVISIBLE);
                 stopButton.setText(getString(R.string.Stop));
                 timerIsStarted = true;
             } else {
@@ -118,37 +105,26 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
                 adjustForTimeError();
                 chronometer.stop();
                 elapsedSeconds = Math.abs(timeWhenStopped);
-                //saveButton.setVisibility(View.VISIBLE);
                 stopButton.setText(getString(R.string.Start));
                 timerIsStarted = false;
                 isSaved = false;
             }
         });
 
-        //saveButton.setVisibility(View.INVISIBLE);
         saveButton.setOnClickListener(v1 -> {
             if(!timerIsStarted) {
                 if(!isSaved) {
                     todayTime += Math.abs(elapsedSeconds);
-                    writeFile(v1, Math.abs(elapsedSeconds));
-                    //isSaved = true;
+                    writeFile(Math.abs(elapsedSeconds));
                     todaySteps += totalSteps;
                     setTodayValues();
                     resetValues();
-                    //elapsedSeconds = ZERO;
-                    //totalSteps = ZERO;
-                    //timeWhenStopped = ZERO;
-                    //stoppedTime = ZERO;
-                    //steps.setText(String.valueOf(totalSteps));
-                    //chronometer.setBase(SystemClock.elapsedRealtime());
                     mListener.OnSaveButtonPressed();
                 }
             } else {
                 Toast.makeText(this.getContext(), "Cannot save while running", Toast.LENGTH_SHORT).show();
             }
         });
-
-
 
         resetButton.setOnClickListener(v -> {
             if(!timerIsStarted) {
@@ -171,84 +147,109 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
         chronometer.setBase(SystemClock.elapsedRealtime());
     }
 
+
+    /**
+     * reads through the file containing the data and adds together values that are on the same day.
+     * then it finds today's date and creates a string that acts as the log of all of today's times and steps.
+     * the method then uses the added values to show today's total steps and times.
+     */
     public void setTodayValues() {
         ArrayList<Integer> times = new ArrayList<>();
         ArrayList<String> dates = new ArrayList<>();
         ArrayList<Integer> steps = new ArrayList<>();
         try {
-            FileInputStream fileInputStream = v.getContext().openFileInput("Work_Data_Final2.txt");
-            InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream);
-            BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+            if(todaysDate.equals(new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date()))) {
+                Log.v("date2", "3: " + todaysDate + ", " + new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date()));
+                FileInputStream fileInputStream = v.getContext().openFileInput("Work_Data_Final2.txt");
+                InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream);
+                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
 
-            String lines;
-            String[] split;
-            StringBuilder stringBuffer = new StringBuilder();
-            while ((lines = bufferedReader.readLine()) != null) {
-                split = lines.split("\\s+");
-                times.add(Integer.parseInt(split[0]));
-                dates.add(split[1]);
-                steps.add(Integer.parseInt(split[2]));
-                if(split[1].equals(new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date()))) {
-                    stringBuffer.append("Steps: ").append(String.valueOf(split[2])).append("    Time: ").append(formatTime(Integer.parseInt(split[0]))).append("\n");
+                String lines;
+                String[] split;
+                StringBuilder stringBuffer = new StringBuilder();
+
+                //skips the first line in the file which was set to 0 to allow the graph to update properly
+                if ((lines = bufferedReader.readLine()) != null) {
                 }
-            }
 
-            todays_values.setText(stringBuffer);
-
-            fileInputStream.close();
-            inputStreamReader.close();
-            bufferedReader.close();
-            ArrayList<Integer> newTimes = new ArrayList<>();
-            ArrayList<String> newDates = new ArrayList<>();
-            ArrayList<Integer> newSteps = new ArrayList<>();
-            //fill the new arraylist with the sum of the values of a any arbitrary day
-            if(!dates.isEmpty()) {
-                for(int i = 0; i < dates.size(); i++) {
-                    //if the new arraylist does not contain the value, add it then search for
-                    //values that are equal to it
-                    if(!newDates.contains(dates.get(i))) {
-                        newDates.add(dates.get(i));
-                        newTimes.add(times.get(i));
-                        newSteps.add(steps.get(i));
-                        // if the value is in the arraylist then add to the time and steps
-                    } else {
-                        int tempTime = times.get(i);
-                        int tempSteps = steps.get(i);
-                        int index = newDates.indexOf(dates.get(i));
-
-                        tempTime += newTimes.get(index);
-                        tempSteps += newSteps.get(index);
-
-                        newSteps.set(index, tempSteps);
-                        newTimes.set(index, tempTime);
+                while ((lines = bufferedReader.readLine()) != null) {
+                    split = lines.split("\\s+");
+                    times.add(Integer.parseInt(split[0]));
+                    dates.add(split[1]);
+                    steps.add(Integer.parseInt(split[2]));
+                    if (split[1].equals(new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date()))) {
+                        stringBuffer.append("Steps: ").append(String.valueOf(split[2])).append("    Time: ").append(formatTime(Integer.parseInt(split[0]))).append("\n");
                     }
                 }
-            }
 
-            //LineGraphSeries<DataPoint> series = new LineGraphSeries<>();
-            for(int i = 0; i < newTimes.size(); i++) {
-                if(newDates.get(i).equals(new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date()))) {
-                    todayTimeView.setText(formatTime(newTimes.get(i)));
-                    todayStepsView.setText(String.valueOf(newSteps.get(i)));
+                todays_values.setText(stringBuffer);
+
+                fileInputStream.close();
+                inputStreamReader.close();
+                bufferedReader.close();
+                ArrayList<Integer> newTimes = new ArrayList<>();
+                ArrayList<String> newDates = new ArrayList<>();
+                ArrayList<Integer> newSteps = new ArrayList<>();
+                //fill the new arraylist with the sum of the values of a any arbitrary day
+                if (!dates.isEmpty()) {
+                    for (int i = 0; i < dates.size(); i++) {
+                        //if the new arraylist does not contain the value, add it then search for
+                        //values that are equal to it
+                        if (!newDates.contains(dates.get(i))) {
+                            newDates.add(dates.get(i));
+                            newTimes.add(times.get(i));
+                            newSteps.add(steps.get(i));
+                            // if the value is in the arraylist then add to the time and steps
+                        } else {
+                            int tempTime = times.get(i);
+                            int tempSteps = steps.get(i);
+                            int index = newDates.indexOf(dates.get(i));
+
+                            tempTime += newTimes.get(index);
+                            tempSteps += newSteps.get(index);
+
+                            newSteps.set(index, tempSteps);
+                            newTimes.set(index, tempTime);
+                        }
+                    }
                 }
 
-                //series.appendData(new DataPoint(i, newSteps.get(i)), true, newSteps.size());
+                //looks through the newDates list to find today's date and when it does it gets the corresponding
+                //values from the newSteps and newTimes lists and sets those values as today's steps and time.
+                for (int i = 0; i < newTimes.size(); i++) {
+                    if (newDates.get(i).equals(new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date()))) {
+                        todayTimeView.setText(formatTime(newTimes.get(i)));
+                        todayStepsView.setText(String.valueOf(newSteps.get(i)));
+                    }
+                }
+            } else {
+                todaysDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+                todayTimeView.setText(formatTime(0));
+                todayStepsView.setText(String.valueOf(0));
+                todays_values.setText("");
             }
-            //graphView.addSeries(series);
-
-
-
 
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+    /**
+     * This method takes an integer, converts it into hours minutes and seconds then returns a
+     * string formatted in the HH:MM:SS format
+     * @param time the time to be formatted; given in seconds
+     * @return returns the time formatted in the HH:MM:SS format
+     */
     public String formatTime(int time) {
-        int[] convertedTodayTime = StopwatchFragment.convertTime(time);
+        int[] convertedTodayTime = convertTime(time);
         return String.format("%02d",convertedTodayTime[0]) + ":" + String.format("%02d",convertedTodayTime[1]) + ":" + String.format("%02d",convertedTodayTime[2]);
     }
 
+    /**
+     * Converts a time, given in seconds, into its corresponding hours, minutes, seconds
+     * @param time a time given in seconds
+     * @return the time converted into hours, minutes, and seconds
+     */
     public static int[] convertTime(int time) {
         int hours = time / 3600;
         int remainder = time - hours * 3600;
@@ -259,19 +260,20 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
         return new int[]{hours, mins, seconds};
     }
 
-    public void setViews(View v) {
+    /**
+     * Sets the views of the stopwatch fragment.
+     *
+     */
+    public void setViews() {
         todayStepsView = v.findViewById(R.id.today_steps);
         todayTimeView = v.findViewById(R.id.today_time);
         todays_values = v.findViewById(R.id.todays_values);
-        graphView = v.findViewById(R.id.graph);
+        graphView = v.findViewById(R.id.stepBarChart);
         series = new LineGraphSeries<DataPoint>();
         scrollView = (ScrollView) v.findViewById(R.id.SCROLLER_ID);
-
-        //todays_values.setMovementMethod(new LinkMovementMethod());
         scrollView.post(new Runnable() {
             @Override
             public void run() {
-                //scrollView.smoothScrollTo(0, todays_values.getBottom());
                 scrollView.fullScroll(View.FOCUS_DOWN);
             }
         });
@@ -288,10 +290,21 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
         steps.setText(String.valueOf(totalSteps));
     }
 
-    public void createFile(View v) {
-        if(!fileExists(v, "Work_Data_Final2.txt")) {
+    /**
+     * If the data file does not exits, which only happens on installation, create  a file for the data
+     * and put a starter value of zero steps, today's date, and zero seconds to allow the bar graph
+     * to properly update.
+     */
+    public void createFile() {
+        if(!fileExists("Work_Data_Final2.txt")) {
             try {
                 FileOutputStream fileOutputStream = v.getContext().openFileOutput("Work_Data_Final2.txt", MODE_PRIVATE);
+                //insert today's date with time and steps at 0 so the graphs are able to update the visuals properly
+                //without this the updated bar is invisible until the app is restarted
+                //this does not cause problems later on as the values are zero.
+                StringBuilder setZero = new StringBuilder();
+                setZero.append("0").append(" ").append(new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date())).append(" ").append(0);
+                fileOutputStream.write(setZero.toString().getBytes());
                 fileOutputStream.close();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -299,12 +312,21 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
         }
     }
 
-    public boolean fileExists(View v, String fileName) {
+    /**
+     * Check if a particular file exists.
+     * @param fileName the name of the file
+     * @return true if the file exists, false otherwise
+     */
+    public boolean fileExists(String fileName) {
         File file = v.getContext().getFileStreamPath(fileName);
         return file != null && file.exists();
     }
 
-    public void writeFile(View v, long elapsedSeconds) {
+    /**
+     *Writes the current steps and time with today's date into the data file.
+     * @param elapsedSeconds the number of seconds that have elapsed after the start button was pressed
+     */
+    public void writeFile(long elapsedSeconds) {
         String date = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
         String finalString = (elapsedSeconds / 1000) + " " + date + " " + totalSteps;
         try {
@@ -345,6 +367,8 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
     public void onResume() {
         super.onResume();
         //getPreferences();
+        Log.v("logtest", "resume2");
+        setTodayValues();
         Sensor countSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
         if(countSensor != null) {
             sensorManager.registerListener(this, countSensor, SensorManager.SENSOR_DELAY_UI);
@@ -359,7 +383,12 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
         shutdownToDo();
     }
 
+    /**
+     * Saves the necessary information into a SharedPreference before the app closes in order to
+     * keep the app's stopwatch and pedometer running when closed.
+     */
     private void shutdownToDo() {
+        Log.v("logtest", "shutdown");
         SharedPreferences preferences = Objects.requireNonNull(this.getActivity()).getSharedPreferences("sharedPrefs", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = preferences.edit();
         elapsedSeconds = (int) (chronometer.getBase() - SystemClock.elapsedRealtime());
@@ -373,6 +402,7 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
         editor.putInt("elapsedTime", (int) elapsedSeconds);
         editor.putLong("base", System.currentTimeMillis());
         editor.putLong("chromBase", chronometer.getBase());
+        editor.putString("date", new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date()));
         editor.apply();
         if(timerIsStarted) {
             Intent intent = new Intent(this.getContext(), PedometerService.class);
@@ -398,6 +428,9 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
         shutdownToDo();
     }
 
+    /**
+     * This method gets the SharedPreferences and assigns the values to their corresponding variables.
+     */
     public void getPreferences() {
         int stoppedSteps = PedometerService.getSteps();
         if(stoppedSteps < 0) {
@@ -424,41 +457,36 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
                 Log.v("LOGS3", " TIMEWHENSTOPPED1: " + timeWhenStopped + " ELAPSEDSECONDS: " + elapsedSeconds);
                 chronometer.setBase(SystemClock.elapsedRealtime() + stoppedTime + elapsedSeconds);
                 chronometer.start();
-                //saveButton.setVisibility(View.INVISIBLE);
                 stopButton.setText(getString(R.string.Stop));
                 timerIsStarted = true;
             } else {
                 Log.v("LOGS3", " TIMEWHENSTOPPED2: " + timeWhenStopped + " ELAPSEDSECONDS: " + elapsedSeconds);
                 timerIsStarted = false;
                 chronometer.setBase(SystemClock.elapsedRealtime() + timeWhenStopped);
-                //saveButton.setVisibility(View.VISIBLE);
             }
         }
-
         if(preferences.contains("todayTime")) {
             todayTime = preferences.getInt("todayTime", ZERO);
         }
-
         if(preferences.contains("totalSteps")) {
             totalSteps = preferences.getInt("totalSteps", ZERO) + stoppedSteps;
-
             Sensor countSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
             if(countSensor != null) {
                 if(timerIsStarted) {
                     totalSteps--;
                 }
-            } else {
-                //Toast.makeText(this.getContext(), "Sensor Not found!", Toast.LENGTH_SHORT).show();
             }
-            /*
-            if(timerIsStarted) {
-                totalSteps--;
-            }
-            */
+
             Log.v("STEPS2", " STEPS: " + totalSteps + " STOPPEDSTEPS: " + stoppedSteps);
             steps.setText(String.valueOf(totalSteps));
         }
+        if(preferences.contains("date")) {
+            todaysDate = preferences.getString("date", "");
+            Log.v("date2", todaysDate);
+        } else {
+            todaysDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
 
+        }
         setTodayValues();
     }
 
@@ -481,16 +509,19 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
         mListener = (OnSaveButtonPressedListener) context;
     }
 
+    /**
+     * A method to add random data to the file for testing purposes.
+     */
     public void addTestData() {
         String date = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
         StringBuilder temp = new StringBuilder();
         Random r = new Random();
-        //for(int i = 1; i <= 12; i++) {
+        for(int i = 7; i <= 7; i++) {
             for(int j = 1; j <= 5; j++) {
-                temp.append(String.valueOf(r.nextInt(1300) + 100)).append(" ").append(date).append(" ").append(String.valueOf(r.nextInt(500) + 100)).append("\n");
+                temp.append(String.valueOf(r.nextInt(1300) + 100)).append(" ").append("2019-11-").append(String.valueOf(i) + " ").append(String.valueOf(r.nextInt(500) + 100)).append("\n");
                 //Log.v("TESTDATA", temp.toString());
             }
-        //}
+        }
 
         try {
             FileInputStream fileInputStream = v.getContext().openFileInput("Work_Data_Final2.txt");
@@ -519,6 +550,7 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
             e.printStackTrace();
         }
     }
+
 
     protected interface OnSaveButtonPressedListener {
         void OnSaveButtonPressed();

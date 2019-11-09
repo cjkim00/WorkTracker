@@ -9,6 +9,7 @@ import android.support.v4.app.FragmentPagerAdapter;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.style.ImageSpan;
+import android.view.MotionEvent;
 
 public class ViewPagerAdapter extends FragmentPagerAdapter {
     StopwatchFragment stopwatchFragment;
@@ -39,10 +40,8 @@ public class ViewPagerAdapter extends FragmentPagerAdapter {
     public Fragment getItem(int position) {
         switch(position) {
             case 0:
-                //StopwatchFragment stopwatchFragment = new StopwatchFragment();
                 return stopwatchFragment;
             case 1:
-                //PedometerFragment pedometerFragment = new PedometerFragment();
                 return statisticsFragment;
             default:
                 return null;

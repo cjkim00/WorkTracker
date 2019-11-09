@@ -1,21 +1,31 @@
 package cjkim00.worktracker;
 
 import android.os.Bundle;
-import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.github.mikephil.charting.charts.BarChart;
+import com.github.mikephil.charting.components.AxisBase;
+import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.data.BarData;
+import com.github.mikephil.charting.data.BarDataSet;
+import com.github.mikephil.charting.data.BarEntry;
+import com.github.mikephil.charting.formatter.ValueFormatter;
+import com.github.mikephil.charting.utils.ColorTemplate;
 import com.jjoe64.graphview.DefaultLabelFormatter;
 import com.jjoe64.graphview.GraphView;
+import com.jjoe64.graphview.series.BarGraphSeries;
 import com.jjoe64.graphview.series.DataPoint;
-import com.jjoe64.graphview.series.LineGraphSeries;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
@@ -28,11 +38,15 @@ import java.util.Locale;
  */
 public class StatisticsFragment extends Fragment {
 
-    GraphView graphView;
-    GraphView timeGraph;
+    BarChart chart ;
+    ArrayList<BarEntry> BARENTRY ;
+    BarDataSet Bardataset ;
+    BarData BARDATA;
 
-    LineGraphSeries<DataPoint> series;
-    LineGraphSeries<DataPoint> timeSeries;
+    BarChart stepChart;
+    ArrayList<BarEntry> STEPENTRY ;
+    BarDataSet stepBardataset ;
+    BarData STEPDATA;
 
     TextView minSteps;
     TextView minTimes;
@@ -51,32 +65,25 @@ public class StatisticsFragment extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         v = inflater.inflate(R.layout.fragment_statistics, container, false);
-        graphView = v.findViewById(R.id.graph);
-        timeGraph = v.findViewById(R.id.time_graph);
 
-        graphView.getViewport().setMinX(0);
-        graphView.getViewport().setMaxX(8);
 
-        timeGraph.getViewport().setMinX(0);
-        timeGraph.getViewport().setMaxX(8);
-        //graphView.getViewport().setScalable(true);  // activate horizontal zooming and scrolling
-        //graphView.getViewport().setScrollable(true);  // activate horizontal scrolling
-        //graphView.getViewport().setScalableY(true);  // activate horizontal and vertical zooming and scrolling
-        //graphView.getViewport().setScrollableY(true);  // activate vertical scrolling
+        chart = (BarChart) v.findViewById(R.id.horizontalBarChart);
+        chart.setFitBars(true);
+        chart.getDescription().setEnabled(false);
 
-        //timeGraph.getViewport().setScalable(true);  // activate horizontal zooming and scrolling
-        //timeGraph.getViewport().setScrollable(true);  // activate horizontal scrolling
-        //timeGraph.getViewport().setScalableY(true);  // activate horizontal and vertical zooming and scrolling
-        //timeGraph.getViewport().setScrollableY(true);  // activate vertical scrolling
+        stepChart = (BarChart) v.findViewById(R.id.stepBarChart);
+        stepChart.setFitBars(true);
+        stepChart.getDescription().setEnabled(false);
 
-        series = new LineGraphSeries<>();
-        timeSeries = new LineGraphSeries<>();
         updateStats();
 
         return v;
     }
 
-    public void setViews(View v) {
+    /**
+     * Sets the views of the statistics fragment
+     */
+    public void setViews() {
         minSteps = v.findViewById(R.id.MinSteps);
         minTimes = v.findViewById(R.id.MinTime);
         maxSteps = v.findViewById(R.id.MaxSteps);
@@ -84,11 +91,9 @@ public class StatisticsFragment extends Fragment {
         averageSteps = v.findViewById(R.id.AverageSteps);
         averageTimeWorked = v.findViewById(R.id.AverageTime);
 
-        graphView = v.findViewById(R.id.graph);
-        timeGraph = v.findViewById(R.id.time_graph);
+        BARENTRY = new ArrayList<>();
+        STEPENTRY = new ArrayList<>();
 
-        series = new LineGraphSeries<>();
-        timeSeries = new LineGraphSeries<>();
 
         minSteps.setText("0");
         minTimes.setText("0");
@@ -98,8 +103,21 @@ public class StatisticsFragment extends Fragment {
         averageTimeWorked.setText("0");
     }
 
+    /**
+     * Updates the stats and the graphs to reflect new data that has been put into the data file.
+     */
     public void updateStats() {
-        setViews(v);
+        setViews();
+
+        //chart.clear();
+        chart = (BarChart) v.findViewById(R.id.horizontalBarChart);
+        chart.getAxisRight().setAxisMinimum(0);
+        chart.getAxisLeft().setAxisMinimum(0);
+        //stepChart.clear();
+        stepChart = (BarChart) v.findViewById(R.id.stepBarChart);
+        stepChart.getAxisRight().setAxisMinimum(0);
+        stepChart.getAxisLeft().setAxisMinimum(0);
+
         ArrayList<Integer> times = new ArrayList<>();
         ArrayList<String> dates = new ArrayList<>();
         ArrayList<Integer> steps = new ArrayList<>();
@@ -122,8 +140,6 @@ public class StatisticsFragment extends Fragment {
             ArrayList<Integer> newTimes = new ArrayList<>();
             ArrayList<String> newDates = new ArrayList<>();
             ArrayList<Integer> newSteps = new ArrayList<>();
-
-
             //fill the new arraylist with the sum of the values of a any arbitrary day
             if(!dates.isEmpty()) {
                 for(int i = 0; i < dates.size(); i++) {
@@ -147,83 +163,36 @@ public class StatisticsFragment extends Fragment {
                     }
                 }
             }
+            Log.v("TESTDATA", String.valueOf(newDates.size()));
 
-            //update the graph here
-            /*
-            for(int i = 0; i < newSteps.size(); i++) {
-                series.appendData(new DataPoint(i, newSteps.get(i)), true, newSteps.size());
-                timeSeries.appendData(new DataPoint(i, newTimes.get(i) / 60), true, newTimes.size());
+            //update both graphs
+            for(int i = 0; i < newDates.size(); i++) {
+                STEPENTRY.add(new BarEntry(i, newSteps.get(i)));
+                BARENTRY.add(new BarEntry(i, (float) newTimes.get(i) / (float) 60));
             }
-            */
 
-            //get the latest 7 days to display on the graph
-            //to be changed to disabling swiping the tab layout so the graph can be scrolled through
-            ArrayList<DataPoint> stepPoints = new ArrayList<>();
-            ArrayList<DataPoint> timePoints = new ArrayList<>();
-            int size = 0;
-            for(int i = newSteps.size() -1; i >= 0; i--) {
-                stepPoints.add(new DataPoint(i, newSteps.get(i)));
-                timePoints.add(new DataPoint(i, newTimes.get(i) / 60));
-                size++;
-                if(size > 8) {
-                    break;
-                }
-            }
-            ArrayList<DataPoint> revSteps = new ArrayList<>();
-            ArrayList<DataPoint> revTimes = new ArrayList<>();
-            for (int i = stepPoints.size() - 1; i >= 0; i--) {
-                revSteps.add(stepPoints.get(i));
-                revTimes.add(timePoints.get(i));
-            }
-            //reverse the points list as to order them correctly
+            Bardataset = new BarDataSet(BARENTRY, "Daily Times");
+            BARDATA = new BarData(Bardataset);
+            Bardataset.setColors(ColorTemplate.COLORFUL_COLORS);
+            chart.setData(BARDATA);
 
-            for(int i = 0; i < revSteps.size(); i++) {
-                series.appendData(revSteps.get(i), true, revSteps.size());
-                timeSeries.appendData(revTimes.get(i), true, revTimes.size());
-            }
-            graphView.addSeries(series);
+            chart.setVisibleXRangeMaximum(5f);
+            chart.notifyDataSetChanged();
+            setxAxis(chart, newDates);
+            chart.invalidate();
 
-            graphView.getGridLabelRenderer().setLabelFormatter(new DefaultLabelFormatter() {
-                @Override
-                public String formatLabel(double value, boolean isValueX) {
-                    if(isValueX) {
-                        if(value % 1 != 0) {
-                            return "";
-                        } else {
-                            if(newDates.isEmpty()) {
-                                return new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
-                            } else {
-                                String[] temp = newDates.get((int) value).split("-");
-                                return temp[1] + "/" + temp[2];
-                            }
-                        }
-                    } else {
-                        return super.formatLabel(value, isValueX);
-                    }
-                }
-            });
+            stepBardataset = new BarDataSet(STEPENTRY, "Daily Steps");
+            STEPDATA = new BarData(stepBardataset);
+            stepBardataset.setColors(ColorTemplate.COLORFUL_COLORS);
+            stepChart.setData(STEPDATA);
 
+            stepChart.setVisibleXRangeMaximum(5f);
+            stepChart.notifyDataSetChanged();
+            setxAxis(stepChart, newDates);
+            stepChart.invalidate();
 
-            timeGraph.getGridLabelRenderer().setLabelFormatter(new DefaultLabelFormatter() {
-                @Override
-                public String formatLabel(double value, boolean isValueX) {
-                    if(isValueX) {
-                        if(value % 1 != 0) {
-                            return "";
-                        } else {
-                            if(newDates.isEmpty()) {
-                                return new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
-                            } else {
-                                String[] temp = newDates.get((int) value).split("-");
-                                return temp[1] + "/" + temp[2];
-                            }
-                        }
-                    } else {
-                        return super.formatLabel(value, isValueX);
-                    }
-                }
-            });
-            timeGraph.addSeries(timeSeries);
+            //setxAxis(chart, newDates);
+            //setxAxis(stepChart, newDates);
 
             minSteps.setText(String.valueOf(getMin(newSteps)));
             averageSteps.setText(String.valueOf(getAverage(newSteps)));
@@ -233,18 +202,50 @@ public class StatisticsFragment extends Fragment {
             averageTimeWorked.setText(formatTime(getAverage(newTimes)));
             maxTimeWorked.setText(formatTime(getMax(newTimes)));
 
+        } catch (FileNotFoundException e) {
 
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+    /**
+     * Set the x-axis labels for the graphs
+     * @param chart the graph whose labels are to be changed
+     * @param newDates the array containing the dates saved in the data file
+     */
+    public void setxAxis(BarChart chart, ArrayList<String> newDates) {
+        XAxis xAxis = chart.getXAxis();
+        xAxis.setGranularityEnabled(true);
+        xAxis.setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getAxisLabel(float value, AxisBase axis) {
+                if(newDates.size() == 0) {
+                    return new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+                }
+                if((int) value == newDates.size()) {
+                    return new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+                }
+                return newDates.get((int) value);
+            }
+        });
+    }
+
+    /**
+     * Format the given time into the HH:MM:SS format.
+     * @param time the amount of time given in seconds
+     * @return the formatted string in the HH:MM:SS format.
+     */
     public String formatTime(int time) {
         int[] convertedTodayTime = StopwatchFragment.convertTime(time);
         return String.format("%02d",convertedTodayTime[0]) + ":" + String.format("%02d",convertedTodayTime[1]) + ":" + String.format("%02d",convertedTodayTime[2]);
     }
 
-
+    /**
+     * Returns the average of the given list
+     * @param list the list of integers
+     * @return the average of the list
+     */
     public int getAverage(ArrayList<Integer> list) {
         int sum = 0;
         if(!list.isEmpty()) {
@@ -256,6 +257,11 @@ public class StatisticsFragment extends Fragment {
         return sum;
     }
 
+    /**
+     * Returns the maximum value of the list.
+     * @param list the list of integers
+     * @return the maximum value of the list
+     */
     public int getMax(ArrayList<Integer> list) {
         int max = 0;
         if(!list.isEmpty()) {
@@ -269,6 +275,11 @@ public class StatisticsFragment extends Fragment {
         return max;
     }
 
+    /**
+     * Returns the minimum value of the list.
+     * @param list the list of integers
+     * @return the minimum value of the list
+     */
     public int getMin(ArrayList<Integer> list) {
         int min = Integer.MAX_VALUE;
         if(!list.isEmpty()) {
@@ -282,5 +293,4 @@ public class StatisticsFragment extends Fragment {
             return 0;
         }
     }
-
 }

@@ -7,6 +7,8 @@ import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
+import android.view.MotionEvent;
+import android.view.View;
 
 public class MainActivity extends AppCompatActivity implements StopwatchFragment.OnSaveButtonPressedListener{
 
@@ -19,6 +21,7 @@ public class MainActivity extends AppCompatActivity implements StopwatchFragment
         setContentView(R.layout.activity_main);
         this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
+
         stopwatchFragment = new StopwatchFragment();
         pedometerFragment = new PedometerFragment();
         statisticsFragment = new StatisticsFragment();
@@ -27,13 +30,18 @@ public class MainActivity extends AppCompatActivity implements StopwatchFragment
 
         setSupportActionBar(toolbar);
 
-        ViewPager viewPager = findViewById(R.id.pager2);
+
+        CustomViewPager viewPager = findViewById(R.id.pager2);
+        viewPager.disableScroll(true);
+
+
 
         ViewPagerAdapter viewPagerAdapter = new ViewPagerAdapter(getSupportFragmentManager(),
                                                                  stopwatchFragment,
                                                                  pedometerFragment,
                                                                  statisticsFragment,
                                                                  this);
+
         viewPager.setAdapter(viewPagerAdapter);
         TabLayout tabLayout = findViewById(R.id.tabs);
         tabLayout.setupWithViewPager(viewPager);
