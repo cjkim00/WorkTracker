@@ -52,7 +52,6 @@ public class CalandarFragment extends Fragment {
             }
         });
         CalendarView calendarView = v.findViewById(R.id.calendarView);
-
         calendarView.setOnDateChangeListener(new CalendarView.OnDateChangeListener() {
             @Override
             public void onSelectedDayChange(@NonNull CalendarView view, int year, int month, int dayOfMonth) {
@@ -60,7 +59,12 @@ public class CalandarFragment extends Fragment {
                 log.setText("");
                 setLogs(v, year, month, dayOfMonth);
             }
+
+
         });
+
+
+
         return v;
     }
 
@@ -74,6 +78,9 @@ public class CalandarFragment extends Fragment {
             String[] split;
             StringBuilder stringBuffer = new StringBuilder();
 
+            int totalSteps = 0;
+            int totalTime = 0;
+
             //skips the first line in the file to remove the placeholder 0 value
             if ((lines = bufferedReader.readLine()) != null) { }
 
@@ -81,10 +88,16 @@ public class CalandarFragment extends Fragment {
                 split = lines.split("\\s+");
                 Log.v("datelog", "DATE: " + date + " DATE2:" + split[1] + " " + date.equals(split[1]));
                 if (date.equals(split[1])) {
+                    totalSteps += Integer.valueOf(split[2]);
+                    totalTime += Integer.valueOf(split[0]);
                     stringBuffer.append("Steps: ").append(String.valueOf(split[2])).append("    Time: ").append(StopwatchFragment.formatTime(Integer.parseInt(split[0]))).append("\n");
                 }
             }
-            log.setText(stringBuffer);
+            StringBuilder finalString = new StringBuilder();
+            finalString.append("Total Steps: ").append(totalSteps).append(" Total Time: ").append("\t").append(StopwatchFragment.formatTime(totalTime)).append("\n").append(stringBuffer);
+
+            //log.setText(stringBuffer);
+            log.setText(finalString);
         } catch(FileNotFoundException e) {
 
         } catch (IOException e) {
