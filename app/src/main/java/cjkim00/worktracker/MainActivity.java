@@ -15,6 +15,7 @@ public class MainActivity extends AppCompatActivity implements StopwatchFragment
     StopwatchFragment stopwatchFragment;
     PedometerFragment pedometerFragment;
     StatisticsFragment statisticsFragment;
+    CalandarFragment calandarFragment;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -25,6 +26,7 @@ public class MainActivity extends AppCompatActivity implements StopwatchFragment
         stopwatchFragment = new StopwatchFragment();
         pedometerFragment = new PedometerFragment();
         statisticsFragment = new StatisticsFragment();
+        calandarFragment = new CalandarFragment();
 
         Toolbar toolbar = findViewById(R.id.tab_layout);
 
@@ -36,15 +38,19 @@ public class MainActivity extends AppCompatActivity implements StopwatchFragment
 
 
 
+
         ViewPagerAdapter viewPagerAdapter = new ViewPagerAdapter(getSupportFragmentManager(),
                                                                  stopwatchFragment,
                                                                  pedometerFragment,
                                                                  statisticsFragment,
+                                                                 calandarFragment,
                                                                  this);
 
         viewPager.setAdapter(viewPagerAdapter);
+
         TabLayout tabLayout = findViewById(R.id.tabs);
         tabLayout.setupWithViewPager(viewPager);
+        //tabLayout.getTabAt()
 
     }
 

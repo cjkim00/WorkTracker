@@ -13,9 +13,11 @@
     <string name="min_daily_steps">Min Daily Steps</string>
     <string name="min_daily_time">Min Daily Time</string>
     <string name="Save">Save</string>
-    <string name = "Steps">Steps</string>
-    <string name = "today_steps">Today\'s Steps</string>
-    <string name = "today_time">Today\'s time</string>
-    <string name = "reset">Reset</string>
-    <string name = "daily_time">Time in Minutes</string>
+    <string name="Steps">Steps</string>
+    <string name="today_steps">Today\'s Steps</string>
+    <string name="today_time">Today\'s time</string>
+    <string name="reset">Reset</string>
+    <string name="daily_time">Time in Minutes</string>
+    <string name="todays_logs">Today\'s Logs</string>
+    <string name="logs">Logs</string>
 </resources>

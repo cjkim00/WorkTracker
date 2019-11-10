@@ -240,7 +240,7 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
      * @param time the time to be formatted; given in seconds
      * @return returns the time formatted in the HH:MM:SS format
      */
-    public String formatTime(int time) {
+    public static String formatTime(int time) {
         int[] convertedTodayTime = convertTime(time);
         return String.format("%02d",convertedTodayTime[0]) + ":" + String.format("%02d",convertedTodayTime[1]) + ":" + String.format("%02d",convertedTodayTime[2]);
     }
@@ -508,7 +508,7 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
         super.onAttach(context);
         mListener = (OnSaveButtonPressedListener) context;
     }
-    
+
 
     protected interface OnSaveButtonPressedListener {
         void OnSaveButtonPressed();
