@@ -114,6 +114,10 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
         saveButton.setOnClickListener(v1 -> {
             if(!timerIsStarted) {
                 if(!isSaved) {
+                    SharedPreferences preferences = Objects.requireNonNull(this.getActivity()).getSharedPreferences("sharedPrefs", Context.MODE_PRIVATE);
+                    SharedPreferences.Editor editor = preferences.edit();
+                    editor.putInt("totalSteps", 0);
+                    editor.apply();
                     todayTime += Math.abs(elapsedSeconds);
                     writeFile(Math.abs(elapsedSeconds));
                     todaySteps += totalSteps;
