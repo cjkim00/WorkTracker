@@ -37,7 +37,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Objects;
-import java.util.Random;
 
 import static android.content.Context.MODE_PRIVATE;
 
@@ -86,7 +85,6 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
         v = inflater.inflate(R.layout.fragment_stopwatch, container, false);
         setViews();
         createFile();
-        //addTestData();
         Log.v("logtest", "resume");
         sensorManager = (SensorManager) Objects.requireNonNull(getActivity()).getSystemService(Context.SENSOR_SERVICE);
 
@@ -371,14 +369,18 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
     public void onResume() {
         super.onResume();
         //getPreferences();
+
         Log.v("logtest", "resume2");
         setTodayValues();
+        todaySteps--;
         Sensor countSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
         if(countSensor != null) {
             sensorManager.registerListener(this, countSensor, SensorManager.SENSOR_DELAY_UI);
         } else {
             Toast.makeText(this.getContext(), "Sensor Not found!", Toast.LENGTH_SHORT).show();
         }
+
+
     }
 
     @Override
@@ -430,6 +432,7 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
     public void onDestroy() {
         super.onDestroy();
         shutdownToDo();
+        //totalSteps--;
     }
 
     /**
@@ -474,14 +477,6 @@ public class StopwatchFragment extends Fragment implements SensorEventListener {
         }
         if(preferences.contains("totalSteps")) {
             totalSteps = preferences.getInt("totalSteps", ZERO) + stoppedSteps;
-            Sensor countSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
-            if(countSensor != null) {
-                if(timerIsStarted) {
-                    totalSteps--;
-                }
-            }
-
-            Log.v("STEPS2", " STEPS: " + totalSteps + " STOPPEDSTEPS: " + stoppedSteps);
             steps.setText(String.valueOf(totalSteps));
         }
         if(preferences.contains("date")) {
